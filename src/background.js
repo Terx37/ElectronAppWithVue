@@ -5,42 +5,56 @@ import { app, protocol, BrowserWindow, nativeTheme } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
+import WindowControls from 'electron-window-controls'
+const path = require('path')
 
 
+WindowControls.initMain()
+
+require('@electron/remote/main').initialize()
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
 ])
 async function createWindow() {
   // Create the browser window.
+  //process.env.ELECTRON_NODE_INTEGRATION = true;
   const win = new BrowserWindow({
     width: 800,
     height: 600,
-    //frame: false, //Hides Frame
-    titleBarStyle: 'hidden',
+    frame: false, //Hides Frame
+    //titleBarStyle: 'hidden',
     /*titleBarOverlay: {
       color: '#2f3241',
       symbolColor: '#74b1be',
       height: 60
     },*/
     webPreferences: {
-      
+      //preload: path.join(__dirname, 'preload.js'),
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
-      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
-      contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION
+      enableRemoteModule: true,
+      nodeIntegration: true,//process.env.ELECTRON_NODE_INTEGRATION,
+      contextIsolation: false//!process.env.ELECTRON_NODE_INTEGRATION
     }
-  })
 
+  })
+require("@electron/remote/main").enable(win.webContents);
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
     if (!process.env.IS_TEST) win.webContents.openDevTools()
   } else {
     createProtocol('app')
-    // Load the index.html when not in development
-    win.loadURL('app://./index.html')
+    win.loadFile('index.html')
+    // Load the index.html when not in development¨
+    //win.loadURL('public/index.html')
+    //win.loadURL(path.resolve(__dirname, 'public/index.html'))
+    //win.loadURL(path.resolve(__dirname, 'public/index.html'), 'app://./index.html')
+
   }
+  //win.nativeTheme.themeSource = "dark"
+
 }
 
 // Quit when all windows are closed.
@@ -70,10 +84,8 @@ app.on('ready', async () => {
       console.error('Vue Devtools failed to install:', e.toString())
     }
   }
-  nativeTheme.themeSource = "dark"
   createWindow()
   
-
 })
 
 // Exit cleanly on request from parent process in development mode.
